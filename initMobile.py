@@ -38,10 +38,11 @@ class Data(object):
 
 def data_load(queueRowData):
     i = 0
-    while i < 100:
+    while i < 10:
         queueRowData.put(0)
         print("load data No.%d" % (i))
         time.sleep(0.1)
+        i += 1
 
     # run model on mobile edge
 
@@ -54,30 +55,31 @@ def run_model(model, queueRowData, queueMobileData, startLayer, endLayer):
             output = queueRowData.get()
             for i in range(startLayer, endLayer + 1):
                 output += 1
-            data = {output, startLayer, endLayer}
+            data = Data(output, startLayer, endLayer)
             if endLayer == MAX_LAYER:
                 queueOutputData.put(data.inputData)
             else:
                 queueMobileData.put(data)
+                print("add data to send cloud")
 
 
 # send data to cloud
 def send_data(client, queueMobileData):
     while True:
         if not queueMobileData.empty():
-            data = queueOutputData.get()
+            data = queueMobileData.get()
             # conver object to string
             str = pickle.dumps(data)
             # convert int to byte, length is 6 bytes and send
             client.send(len(str).to_bytes(length=6, byteorder='big'))
             # send the data
             client.send(str)
+            print("send data success")
 
 
 # receive data from cloud
 def receive_data(client, queueOutputData):
     while True:
-
         length = int.from_bytes(client.recv(6), byteorder='big')
         b = bytes()
         while True:
